@@ -85,11 +85,11 @@ eval set -- "$PARAMS"
 BAMFILE=$1
 #check if it exists
 if [ -z "$BAMFILE" ]; then
-	echo "Must provide BAM file!"
-	usage 1
+  echo "Must provide BAM file!"
+  usage 1
 elif ! [ -r "$BAMFILE" ]; then
-	echo "Cannot read BAM file $BAMFILE !"
-	exit 1
+  echo "Cannot read BAM file $BAMFILE !"
+  exit 1
 fi
 
 
@@ -102,40 +102,40 @@ OUTFQ=demux/$(basename "$BAMFILE"|sed -r "s/\\.bam$/_ccsMergedDemuxed.fastq.gz/"
 #helper script to schedule a CCS chunk job
 scheduleJob() {
 
-	JOBNUM=$1
-	JOBCOUNT=$2
-	INFILE=$3
-	TIME=${4:-"48:00:00"}
-	THREADS=${5:-4}
-	MEM=${6:-"4GB"}
-	OUTFILE=demux/chunks/$(basename "$INFILE"|sed -r "s/\\.bam$/_${JOBNUM}.bam/")
+  JOBNUM=$1
+  JOBCOUNT=$2
+  INFILE=$3
+  TIME=${4:-"48:00:00"}
+  THREADS=${5:-4}
+  MEM=${6:-"4GB"}
+  OUTFILE=demux/chunks/$(basename "$INFILE"|sed -r "s/\\.bam$/_${JOBNUM}.bam/")
 
-	submitjob.sh -n ccs$JOBNUM -t $TIME -c $THREADS -m $MEM \
-	ccs --min-passes $MINPASSES --chunk ${JOBNUM}/${JOBCOUNT} \
-	--num-threads $THREADS $INFILE $OUTFILE
+  submitjob.sh -n ccs$JOBNUM -t $TIME -c $THREADS -m $MEM \
+  ccs --min-passes $MINPASSES --chunk ${JOBNUM}/${JOBCOUNT} \
+  --num-threads $THREADS $INFILE $OUTFILE
 
 }
 
 waitForJobs() {
-	echo "Waiting for jobs to finish..."
-	CURRJOBNUM=1
-	while (( $CURRJOBNUM > 0 )); do
-		sleep 5
-		CURRJOBNUM=$(squeue -hu $USER|wc -l)
-	done
+  echo "Waiting for jobs to finish..."
+  CURRJOBNUM=1
+  while (( $CURRJOBNUM > 0 )); do
+    sleep 5
+    CURRJOBNUM=$(squeue -hu $USER|wc -l)
+  done
 }
 
 #if necessary, index the bamfile to allow for running CCS in parallel jobs
 PBIFILE="${BAMFILE}.pbi"
 if ! [ -r "$PBIFILE" ]; then
-	echo "Indexing BAM file $BAMFILE ..."
-	pbindex $BAMFILE
+  echo "Indexing BAM file $BAMFILE ..."
+  pbindex $BAMFILE
 fi
 
 echo "Scheduling CCS jobs..."
 #schedule parallel CCS jobs on cluster
 for (( JOBNUM = 1; JOBNUM <= $JOBCOUNT; JOBNUM++ )); do
-	scheduleJob $JOBNUM $JOBCOUNT $BAMFILE
+  scheduleJob $JOBNUM $JOBCOUNT $BAMFILE
 done
 
 waitForJobs
@@ -148,14 +148,14 @@ echo "Waiting for job to complete..."
 waitForJobs
 
 #if there are no indices provided, no demuxing will happen
-if [ -z "INDICES" ]; then
-	# or convert to fastq directoy
-	echo "Scheduling BAM2FASTQ conversion..."
-	submitjob.sh -c 4 -m 4G -n bam2fastq -- bam2fastq -o $OUTFQ -c 6 $OUTBAM 
+if [ -z "$INDICES" ]; then
+  # or convert to fastq directoy
+  echo "Scheduling BAM2FASTQ conversion..."
+  submitjob.sh -c 4 -m 4G -n bam2fastq -- bam2fastq -o $OUTFQ -c 6 $OUTBAM 
 else 
-	# demultiplexing (if applicable)
-	echo "Scheduling demultiplexer..."
-	submitjob.sh -c 12 -m 4G -n lima -- lima $OUTBAM $INDICES $OUTFQ --same --ccs --min-score 80 --num-threads 12 --split-named
+  # demultiplexing (if applicable)
+  echo "Scheduling demultiplexer..."
+  submitjob.sh -c 12 -m 4G -n lima -- lima $OUTBAM $INDICES $OUTFQ --same --ccs --min-score 80 --num-threads 12 --split-named
 fi
 
 echo "Waiting for job to complete..."
