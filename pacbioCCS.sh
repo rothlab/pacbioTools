@@ -94,7 +94,7 @@ fi
 
 
 mkdir -p demux/chunks
-mkdir -p logs
+# mkdir -p logs
 
 OUTBAM=demux/$(basename "$BAMFILE"|sed -r "s/\\.bam$/_ccsMerged.bam/")
 OUTFQ=demux/$(basename "$BAMFILE"|sed -r "s/\\.bam$/_ccsMergedDemuxed.fastq.gz/")
@@ -143,6 +143,8 @@ waitForJobs
 # merge the final results
 echo "Consolidating job outputs..."
 submitjob.sh -c 4 -m 4G -n pbmerge -- pbmerge -o $OUTBAM demux/chunks/*.bam
+# merge text reports
+tail -n +1 demux/chunks/*report.txt>demux/reports.txt
 
 echo "Waiting for job to complete..."
 waitForJobs
@@ -160,6 +162,10 @@ fi
 
 echo "Waiting for job to complete..."
 waitForJobs
+
+#cleanup
+rm demux/chunks/*
+rmdir demux/chunks
 
 echo "Success!"
 
