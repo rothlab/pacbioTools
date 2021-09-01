@@ -116,14 +116,24 @@ scheduleJob() {
 
 }
 
+#helper function to wait for the completion of jobs
 waitForJobs() {
+  #first argument should be a comma-separated list of job ids.
+  JOBS=$1
   echo "Waiting for jobs to finish..."
+  #the number of currently active jobs (with 1 pseudo-job to begin with)
   CURRJOBNUM=1
   while (( $CURRJOBNUM > 0 )); do
     sleep 5
-    CURRJOBNUM=$(squeue -hu $USER|wc -l)
+    if [ -z "$JOBS" ]; then
+      CURRJOBNUM=$(squeue -hu $USER|wc -l)
+    else
+      CURRJOBNUM=$(squeue -hu $USER -j${JOBS}|wc -l)
+    fi
+    echo "$CURRJOBNUM jobs remaining"
   done
 }
+
 
 #if necessary, index the bamfile to allow for running CCS in parallel jobs
 PBIFILE="${BAMFILE}.pbi"
