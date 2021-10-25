@@ -72,7 +72,7 @@ while (( "$#" )); do
       echo "ERROR: Unsupported flag $1" >&2
       usage 1
       ;;
-    *) # the first occurrence of a positional parameter indicates the main command
+    *) # positional parameter
       PARAMS="$PARAMS $1"
       shift
       ;;
@@ -116,23 +116,23 @@ scheduleJob() {
 
 }
 
-#helper function to wait for the completion of jobs
-waitForJobs() {
-  #first argument should be a comma-separated list of job ids.
-  JOBS=$1
-  echo "Waiting for jobs to finish..."
-  #the number of currently active jobs (with 1 pseudo-job to begin with)
-  CURRJOBNUM=1
-  while (( $CURRJOBNUM > 0 )); do
-    sleep 5
-    if [ -z "$JOBS" ]; then
-      CURRJOBNUM=$(squeue -hu $USER|wc -l)
-    else
-      CURRJOBNUM=$(squeue -hu $USER -j${JOBS}|wc -l)
-    fi
-    echo "$CURRJOBNUM jobs remaining"
-  done
-}
+# #helper function to wait for the completion of jobs
+# waitForJobs() {
+#   #first argument should be a comma-separated list of job ids.
+#   JOBS=$1
+#   echo "Waiting for jobs to finish..."
+#   #the number of currently active jobs (with 1 pseudo-job to begin with)
+#   CURRJOBNUM=1
+#   while (( $CURRJOBNUM > 0 )); do
+#     sleep 5
+#     if [ -z "$JOBS" ]; then
+#       CURRJOBNUM=$(squeue -hu $USER|wc -l)
+#     else
+#       CURRJOBNUM=$(squeue -hu $USER -j${JOBS}|wc -l)
+#     fi
+#     echo "$CURRJOBNUM jobs remaining"
+#   done
+# }
 
 
 #if necessary, index the bamfile to allow for running CCS in parallel jobs
@@ -148,7 +148,7 @@ for (( JOBNUM = 1; JOBNUM <= $JOBCOUNT; JOBNUM++ )); do
   scheduleJob $JOBNUM $JOBCOUNT $BAMFILE
 done
 
-waitForJobs
+waitForJobs.sh
 
 # merge the final results
 echo "Consolidating job outputs..."
@@ -157,7 +157,7 @@ submitjob.sh -c 4 -m 4G -n pbmerge -- pbmerge -o $OUTBAM demux/chunks/*.bam
 tail -n +1 demux/chunks/*report.txt>demux/reports.txt
 
 echo "Waiting for job to complete..."
-waitForJobs
+waitForJobs.sh
 
 #if there are no indices provided, no demuxing will happen
 if [ -z "$INDICES" ]; then
@@ -171,7 +171,7 @@ else
 fi
 
 echo "Waiting for job to complete..."
-waitForJobs
+waitForJobs.sh
 
 #cleanup
 rm demux/chunks/*
