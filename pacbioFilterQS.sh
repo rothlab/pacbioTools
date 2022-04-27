@@ -2,6 +2,7 @@
 
 #Default Quality score cutoff = 16 (i.e. accept 17 and above)
 QS=16
+OUTFILE=""
 
 #helper function to print usage information
 usage () {
@@ -12,9 +13,10 @@ pacbioFilterQS.sh v0.0.1
 by Jochen Weile <jochenweile@gmail.com> 2021
 
 Filter BAM files by quality score
-Usage: pacbioFilterQS.sh [-q|--qualityCutoff <INTEGER>] <BAM>
+Usage: pacbioFilterQS.sh [-q|--qualityCutoff <INTEGER>] [-o|--outfile <OUTBAM>] <BAM>
 
-<BAM>        : The input BAM file
+<BAM>              : The input BAM file
+-o|--outfile       : The output BAM file. <BAM>_QS<QS>.bam in current folder.
 -q|--qualityCutoff : Only allow reads with QS greater than this. Default: $QS
 
 EOF
@@ -23,8 +25,9 @@ EOF
 
 set -euo pipefail
 
+echo "pacbioFilterQS.sh v0.0.1"
 
-#tokenize parameters
+#tokenize command line arguments
 PARAMS=$(getopt -u -n "pacbioFilterQS.sh" -o "q:h" -l "qualityCutoff:,help" -- "$@")
 #parse parameter tokens
 eval set -- "$PARAMS"
@@ -42,12 +45,18 @@ while (( "$#" )); do
       QS=$2
       shift 2
       ;;
+    -o|--outfile)
+      OUTFILE=$2
+      shift 2
+      ;;
     -h|--help)
       usage 0
       shift
       ;;
-    --) #end of options
-    PARAMS="$@"
+    --) #end of options. dump the rest into PARAMS
+      shift
+      PARAMS="$@"
+      eval set -- ""
   esac
 done
 eval set -- "$PARAMS"
@@ -58,15 +67,22 @@ if [[ -z $BAMFILE ]]; then
   echo "Error: No BAM file provided!">&2
   usage 1;
 elif ! [[ $BAMFILE =~ $BAMRX ]]; then
-  echo "Error: File is not a .bam file!">&2
+  echo "Error: $BAMFILE is not a .bam file!">&2
   usage 1;
 elif ! [[ -r $BAMFILE ]]; then
   echo "Error: BAMFILE does not exist or cannot be read!">&2
   usage 1;
 fi
 
+if [[ -z "$OUTFILE" ]]; then
+  OUTFILE=$(basename "${BAMFILE%.bam}_QS${QS}.bam")
+elif [[ ! -d $(dirname $OUTFILE) ]]; then
+  echo "Error: Path to outfile $OUTFILE does not exist!"
+  usage 1;
+fi
 
-OUTFILE=${BAMFILE%.bam}_QS${QS}.bam
+echo "Output will be written to ${OUTFILE}"
+echo "Preparing filter for QS=${QS}"
 
 #Filter file will contain all values of QS to be filtered
 FILTERFILE=$(mktemp)
