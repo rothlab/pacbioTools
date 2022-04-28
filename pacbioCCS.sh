@@ -9,6 +9,7 @@ pacbioCCS.sh v0.0.1
 by Jochen Weile <jochenweile@gmail.com> 2021
 
 Runs parallel CCS analysis on a Pacbio BAM file using a SLURM HPC cluster.
+Recommended number of CPUs to run this script: >12
 Usage: pacbioCCS.sh [-d|--demuxIndices <FASTAFILE>] [-j|--jobcount <INTEGER>] 
     [-p|--passes <INTEGER>] [--] <BAMFILE>
 
@@ -110,10 +111,12 @@ scheduleJob() {
   MEM=${6:-"4GB"}
   OUTFILE=demux/chunks/$(basename "$INFILE"|sed -r "s/\\.bam$/_${JOBNUM}.bam/")
 
-  submitjob.sh -n ccs$JOBNUM -t $TIME -c $THREADS -m $MEM \
+  RETVAL=$(submitjob.sh -n ccs$JOBNUM -t $TIME -c $THREADS -m $MEM \
   ccs --min-passes $MINPASSES --chunk ${JOBNUM}/${JOBCOUNT} \
-  --num-threads $THREADS $INFILE $OUTFILE
+  --num-threads $THREADS $INFILE $OUTFILE)
 
+  JOBID=${RETVAL##* }
+  echo $JOBID
 }
 
 # #helper function to wait for the completion of jobs
@@ -144,34 +147,39 @@ fi
 
 echo "Scheduling CCS jobs..."
 #schedule parallel CCS jobs on cluster
+JOBS=""
 for (( JOBNUM = 1; JOBNUM <= $JOBCOUNT; JOBNUM++ )); do
-  scheduleJob $JOBNUM $JOBCOUNT $BAMFILE
+  JOBID=$(scheduleJob $JOBNUM $JOBCOUNT $BAMFILE)
+  JOBS=${JOBS},$JOBID
 done
 
-waitForJobs.sh
+waitForJobs.sh -v "$JOBS"
 
 # merge the final results
 echo "Consolidating job outputs..."
-submitjob.sh -c 4 -m 4G -n pbmerge -- pbmerge -o $OUTBAM demux/chunks/*.bam
+# submitjob.sh -c 4 -m 4G -n pbmerge -- 
+pbmerge -o $OUTBAM demux/chunks/*.bam
 # merge text reports
 tail -n +1 demux/chunks/*report.txt>demux/reports.txt
 
-echo "Waiting for job to complete..."
-waitForJobs.sh
+# echo "Waiting for job to complete..."
+# waitForJobs.sh
 
 #if there are no indices provided, no demuxing will happen
 if [ -z "$INDICES" ]; then
   # or convert to fastq directoy
-  echo "Scheduling BAM2FASTQ conversion..."
-  submitjob.sh -c 4 -m 4G -n bam2fastq -- bam2fastq -o $OUTFQ -c 6 $OUTBAM 
+  echo "BAM2FASTQ conversion..."
+  # submitjob.sh -c 4 -m 4G -n bam2fastq -- 
+  bam2fastq -o $OUTFQ -c 6 $OUTBAM 
 else 
   # demultiplexing (if applicable)
-  echo "Scheduling demultiplexer..."
-  submitjob.sh -c 12 -m 4G -n lima -- lima $OUTBAM $INDICES $OUTFQ --same --ccs --min-score 80 --num-threads 12 --split-named
+  echo "Demultiplexing..."
+  # submitjob.sh -c 12 -m 4G -n lima -- 
+  lima $OUTBAM $INDICES $OUTFQ --same --ccs --min-score 80 --num-threads 12 --split-named
 fi
 
-echo "Waiting for job to complete..."
-waitForJobs.sh
+# echo "Waiting for job to complete..."
+# waitForJobs.sh
 
 #cleanup
 rm demux/chunks/*
