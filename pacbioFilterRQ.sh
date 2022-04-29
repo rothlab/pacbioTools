@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Default Quality score cutoff = 16 (i.e. accept 17 and above)
-QS=16
+RQ=0.998
 OUTFILE=""
 
 #helper function to print usage information
@@ -16,8 +16,8 @@ Filter BAM files by quality score
 Usage: pacbioFilterQS.sh [-q|--qualityCutoff <INTEGER>] [-o|--outfile <OUTBAM>] <BAM>
 
 <BAM>              : The input BAM file
--o|--outfile       : The output BAM file. <BAM>_QS<QS>.bam in current folder.
--q|--qualityCutoff : Only allow reads with QS greater than this. Default: $QS
+-o|--outfile       : The output BAM file. <BAM>_RQ<RQ>.bam in current folder.
+-q|--qualityCutoff : Only allow reads with RQ greater than this. Default: $RQ
 
 EOF
  exit $1
@@ -25,10 +25,10 @@ EOF
 
 set -euo pipefail
 
-echo "pacbioFilterQS.sh v0.0.1"
+echo "pacbioFilterRQ.sh v0.0.1"
 
 #tokenize command line arguments
-PARAMS=$(getopt -u -n "pacbioFilterQS.sh" -o "q:h" -l "qualityCutoff:,help" -- "$@")
+PARAMS=$(getopt -u -n "pacbioFilterRQ.sh" -o "q:h" -l "qualityCutoff:,help" -- "$@")
 #parse parameter tokens
 eval set -- "$PARAMS"
 PARAMS=""
@@ -42,7 +42,7 @@ while (( "$#" )); do
       elif [[ $2 < 0 || $2 > 20 ]]; then
         echo "Error: qualityCutoff must be between 0 and 20"
       fi
-      QS=$2
+      RQ=$2
       shift 2
       ;;
     -o|--outfile)
@@ -75,30 +75,46 @@ elif ! [[ -r $BAMFILE ]]; then
 fi
 
 if [[ -z "$OUTFILE" ]]; then
-  OUTFILE=$(basename "${BAMFILE%.bam}_QS${QS}.bam")
+  OUTFILE=$(basename "${BAMFILE%.bam}_RQ${RQ}.bam")
 elif [[ ! -d $(dirname $OUTFILE) ]]; then
   echo "Error: Path to outfile $OUTFILE does not exist!"
   usage 1;
 fi
 
 echo "Output will be written to ${OUTFILE}"
-echo "Preparing filter for QS=${QS}"
+echo "Filtering for RQ=${RQ} ..."
 
-#Filter file will contain all values of QS to be filtered
-FILTERFILE=$(mktemp)
-#write numbers 0 through QS into filterfile, separated by newlines
-eval echo "{0..${QS}}"|sed -r "s/ /\n/g">$FILTERFILE
+# #Filter file will contain all values of QS to be filtered
+# FILTERFILE=$(mktemp)
+# #write numbers 0 through QS into filterfile, separated by newlines
+# eval echo "{0..${QS}}"|sed -r "s/ /\n/g">$FILTERFILE
 
-echo "Filtering..."
-#invert filter by writing to "unoutput" and discarding main output
-samtools view $BAMFILE -b -D "qs:${FILTERFILE}" -U $OUTFILE >/dev/null
+# echo "Filtering..."
+# #invert filter by writing to "unoutput" and discarding main output
+# samtools view $BAMFILE -b -D "qs:${FILTERFILE}" -U $OUTFILE >/dev/null
+
+# echo "Done!"
+# #delete temp file
+# rm $FILTERFILE
+
+function filterByRQ() {
+  BAMFILE=$1
+  RQCUTOFF=${2:-0.95}
+  samtools view -H $BAMFILE
+  samtools view "$BAMFILE"|while IFS="" read -r SAMLINE; do
+    RQVAL=$(echo $SAMLINE|grep -oP 'rq:f:\K[\S]+')
+    if (( $(echo "$RQVAL > $RQCUTOFF"|bc -l) )); then
+      printf "%s\n" "$SAMLINE"
+    fi
+  done
+}
+filterByRQ "$BAMFILE" "$RQ"|samtools view -b -o $OUTFILE
 
 echo "Done!"
-#delete temp file
-rm $FILTERFILE
 
-echo "Calculating distribution of remaining QS scores..."
-#print distribution of remaining Q-scores
-samtools view $OUTFILE|grep -oP 'qs:i:\K[0-9]+'|sort -n|uniq -c
 
-echo "Done!"
+# cat test.sam|head -2|while IFS= read -r SAMLINE; do
+#   # RQVAL=$(echo $SAMLINE|grep -oP 'rq:f:\K[\S]+')
+#   # echo "$RQVAL"
+#   printf "%s\n" "$SAMLINE"
+# done
