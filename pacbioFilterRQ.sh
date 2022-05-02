@@ -97,26 +97,26 @@ echo "Filtering for RQ=${RQ} ..."
 # #delete temp file
 # rm $FILTERFILE
 
-function filterByRQ_slow() {
-  BAMFILE=$1
-  RQCUTOFF=${2:-0.95}
-  samtools view -H $BAMFILE
-  samtools view "$BAMFILE"|while IFS="" read -r SAMLINE; do
-    RQVAL=$(echo $SAMLINE|grep -oP 'rq:f:\K[\S]+')
-    if (( $(echo "$RQVAL > $RQCUTOFF"|bc -l) )); then
-      printf "%s\n" "$SAMLINE"
-    fi
-  done
-}
+# function filterByRQ_slow() {
+#   BAMFILE=$1
+#   RQCUTOFF=${2:-0.95}
+#   samtools view -H $BAMFILE
+#   samtools view "$BAMFILE"|while IFS="" read -r SAMLINE; do
+#     RQVAL=$(echo $SAMLINE|grep -oP 'rq:f:\K[\S]+')
+#     if (( $(echo "$RQVAL > $RQCUTOFF"|bc -l) )); then
+#       printf "%s\n" "$SAMLINE"
+#     fi
+#   done
+# }
 
 function filterByRQ() {
   BAMFILE=$1
+  RQCUTOFF=${2:-0.95}
   samtools view -H $BAMFILE
-  samtools view "$BAMFILE"|python3  -c '
+  samtools view "$BAMFILE"|python3 -c '
 import sys
 import re
-# cutoff = float(sys.argv[0])
-cutoff = 0.999
+cutoff = float(sys.argv[1])
 with sys.stdin as stream:
   for line in stream:
     line = line.rstrip()
@@ -125,18 +125,8 @@ with sys.stdin as stream:
       rq = matchObj.group(1)
       if (float(rq) > cutoff):
         print(line)
-'
+' $RQCUTOFF
 }
 filterByRQ "$BAMFILE" "$RQ"|samtools view -b -o $OUTFILE
 
-
-
-
 echo "Done!"
-
-
-# cat test.sam|head -2|while IFS= read -r SAMLINE; do
-#   # RQVAL=$(echo $SAMLINE|grep -oP 'rq:f:\K[\S]+')
-#   # echo "$RQVAL"
-#   printf "%s\n" "$SAMLINE"
-# done

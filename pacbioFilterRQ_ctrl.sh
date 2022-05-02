@@ -6,7 +6,7 @@ JOBS=""
 for INBAM in $BAMS; do
   #submit filter job
   echo "Processing $INBAM"
-  RETVAL=$(submitjob.sh -c 4 -m 4G -- pacbioFilterQS.sh "$INBAM")
+  RETVAL=$(submitjob.sh -c 4 -m 4G -- pacbioFilterRQ.sh "$INBAM")
   JOBID=${RETVAL##* }
     if [ -z "$JOBS" ]; then
       #if jobs is empty, set it to the new ID
