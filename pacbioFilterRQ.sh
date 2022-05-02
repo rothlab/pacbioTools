@@ -97,7 +97,7 @@ echo "Filtering for RQ=${RQ} ..."
 # #delete temp file
 # rm $FILTERFILE
 
-function filterByRQ() {
+function filterByRQ_slow() {
   BAMFILE=$1
   RQCUTOFF=${2:-0.95}
   samtools view -H $BAMFILE
@@ -108,7 +108,29 @@ function filterByRQ() {
     fi
   done
 }
+
+function filterByRQ() {
+  BAMFILE=$1
+  samtools view -H $BAMFILE
+  samtools view "$BAMFILE"|python3  -c '
+import sys
+import re
+# cutoff = float(sys.argv[0])
+cutoff = 0.999
+with sys.stdin as stream:
+  for line in stream:
+    line = line.rstrip()
+    matchObj = re.search(r"rq:f:(\S+)", line)
+    if matchObj:
+      rq = matchObj.group(1)
+      if (float(rq) > cutoff):
+        print(line)
+'
+}
 filterByRQ "$BAMFILE" "$RQ"|samtools view -b -o $OUTFILE
+
+
+
 
 echo "Done!"
 
