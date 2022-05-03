@@ -1,5 +1,25 @@
 #!/bin/bash
 
+set -euo pipefail
+
+#helper function to print usage information
+usage () {
+  cat << EOF
+
+pacbioCheckQuality.sh v0.0.1 
+
+by Jochen Weile <jochenweile@gmail.com> 2021
+
+Check distribution of RQ qualties
+Usage: pacbioCheckQuality.sh <BAM>
+
+<BAM>              : The input BAM file
+
+EOF
+ exit $1
+}
+
+
 BAMFILE=$1
 BAMRX='\.bam$'
 if [[ -z $BAMFILE ]]; then
@@ -58,3 +78,6 @@ plot(rqsort[plotidx],idxpoints,type="l",xlab="RQ",ylab="cumulative distr.")
 dev.off()
 
 '
+
+echo "Done!"
+

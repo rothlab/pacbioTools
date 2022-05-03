@@ -8,12 +8,12 @@ OUTFILE=""
 usage () {
   cat << EOF
 
-pacbioFilterQS.sh v0.0.1 
+pacbioFilterRQ.sh v0.0.1 
 
 by Jochen Weile <jochenweile@gmail.com> 2021
 
 Filter BAM files by quality score
-Usage: pacbioFilterQS.sh [-q|--qualityCutoff <INTEGER>] [-o|--outfile <OUTBAM>] <BAM>
+Usage: pacbioFilterRQ.sh [-q|--qualityCutoff <INTEGER>] [-o|--outfile <OUTBAM>] <BAM>
 
 <BAM>              : The input BAM file
 -o|--outfile       : The output BAM file. <BAM>_RQ<RQ>.bam in current folder.
