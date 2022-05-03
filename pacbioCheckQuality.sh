@@ -16,21 +16,37 @@ fi
 
 function extractNPRQ() {
   BAMFILE=$1
-  RQFILE=$(mktemp)
-  samtools view "$BAMFILE"|grep -oP 'rq:f:\K[\S]+'>$RQFILE
-  NPFILE=$(mktemp)
-  samtools view "$BAMFILE"|grep -oP 'np:i:\K[\S]+'>$NPFILE
-  paste $NPFILE $RQFILE
-  rm $RQFILE $NPFILE
+  # RQFILE=$(mktemp)
+  # samtools view "$BAMFILE"|grep -oP 'rq:f:\K[\S]+'>$RQFILE
+  # NPFILE=$(mktemp)
+  # samtools view "$BAMFILE"|grep -oP 'np:i:\K[\S]+'>$NPFILE
+  # paste $NPFILE $RQFILE
+  # rm $RQFILE $NPFILE
+  paste <(samtools view "$BAMFILE"|grep -oP 'rq:f:\K[\S]+') \
+        <(samtools view "$BAMFILE"|grep -oP 'np:i:\K[\S]+')
 }
 extractNPRQ $BAMFILE >nprq.tsv
 
 Rscript -e '
 data <- read.delim("nprq.tsv",header=FALSE)
-colnames(data) <- c("np","rq")
+colnames(data) <- c("rq","np")
+
+if (any(data$rq < 0)) {
+  png("invalidReads.png")
+  barplot(
+    c(
+      `CCS failed`=100*sum(data$rq < 0)/nrow(data),
+      `CCS success`=100*sum(data$rq > 0)/nrow(data)
+    ),
+    col=c("firebrick3","darkolivegreen3"),
+    border=NA, ylab="% reads"
+  )
+  dev.off()
+  data <- data[data$rq > 0,]
+}
 
 png("nprq.png")
-plot(jitter(data[,1],amount=.8),data[,2],pch=".",col=yogitools::colAlpha(1,.2),xlab="numPasses",ylab="RQ")
+plot(jitter(data$np,amount=.8),data$rq,pch=".",col=yogitools::colAlpha(1,.2),xlab="numPasses",ylab="RQ")
 dev.off()
 
 rqsort <- sort(data$rq)

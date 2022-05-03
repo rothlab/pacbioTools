@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Default Quality score cutoff = 16 (i.e. accept 17 and above)
-RQ=0.998
+RQ=0.999
 OUTFILE=""
 
 #helper function to print usage information
@@ -75,7 +75,7 @@ elif ! [[ -r $BAMFILE ]]; then
 fi
 
 if [[ -z "$OUTFILE" ]]; then
-  OUTFILE=$(basename "${BAMFILE%.bam}_RQ${RQ}.bam")
+  OUTFILE=$(basename "${BAMFILE%.bam}_RQ${RQ##*.}.bam")
 elif [[ ! -d $(dirname $OUTFILE) ]]; then
   echo "Error: Path to outfile $OUTFILE does not exist!"
   usage 1;
@@ -111,7 +111,7 @@ echo "Filtering for RQ=${RQ} ..."
 
 function filterByRQ() {
   BAMFILE=$1
-  RQCUTOFF=${2:-0.95}
+  RQCUTOFF=${2:-0.999}
   samtools view -H $BAMFILE
   samtools view "$BAMFILE"|python3 -c '
 import sys
