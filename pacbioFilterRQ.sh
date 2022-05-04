@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Default Quality score cutoff = 16 (i.e. accept 17 and above)
-RQ=0.999
+RQ=0.998
 OUTFILE=""
 
 #helper function to print usage information
@@ -111,7 +111,7 @@ echo "Filtering for RQ=${RQ} ..."
 
 function filterByRQ() {
   BAMFILE=$1
-  RQCUTOFF=${2:-0.999}
+  RQCUTOFF=${2:-0.998}
   samtools view -H $BAMFILE
   samtools view "$BAMFILE"|python3 -c '
 import sys
@@ -128,5 +128,10 @@ with sys.stdin as stream:
 ' $RQCUTOFF
 }
 filterByRQ "$BAMFILE" "$RQ"|samtools view -b -o $OUTFILE
+
+#index bam file
+pbindex $OUTFILE
+#translate to fastq
+bam2fastq $OUTFILE -o ${OUTFILE%.bam} -c 6
 
 echo "Done!"
