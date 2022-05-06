@@ -28,7 +28,7 @@ set -euo pipefail
 echo "pacbioFilterRQ.sh v0.0.1"
 
 #tokenize command line arguments
-PARAMS=$(getopt -u -n "pacbioFilterRQ.sh" -o "q:h" -l "qualityCutoff:,help" -- "$@")
+PARAMS=$(getopt -u -n "pacbioFilterRQ.sh" -o "q:o:h" -l "qualityCutoff:,outfile:,help" -- "$@")
 #parse parameter tokens
 eval set -- "$PARAMS"
 PARAMS=""
