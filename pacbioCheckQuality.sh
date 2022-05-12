@@ -51,6 +51,12 @@ Rscript -e '
 data <- read.delim("nprq.tsv",header=FALSE)
 colnames(data) <- c("rq","np")
 
+cat(sprintf("Raw: %d, RQ>.998: %d (=%.01f)",
+  nrow(data),
+  sum(data$rq>.998,na.rm=TRUE),
+  100*sum(data$rq>.998,na.rm=TRUE)/nrow(data)
+),file="readCounts.txt")
+
 if (any(data$rq < 0)) {
   png("invalidReads.png")
   barplot(
