@@ -14,9 +14,11 @@ Usage: pacbioCCS.sh [-d|--demuxIndices <FASTAFILE>] [-j|--jobcount <INTEGER>]
     [-p|--passes <INTEGER>] [--] <BAMFILE>
 
 -d|--demuxIndices : FASTA file containing demultiplexing indices. If none
-           is provided, then demultiplexing is skipped.
+                    is provided, then demultiplexing is skipped.
 -j|--jobcount : Number of jobs to run in parallel. Defaults to 100
--p|--passes : Minimum number of CCS passes required to accept read.
+-p|--passes   : Minimum number of CCS passes required to accept read. 
+                Default 1
+-r|--minRQ    : Minimum read accuracy (RQ). Default 0.998
 <BAMFILE>     : The BAM file to process
 
 EOF
@@ -26,7 +28,9 @@ EOF
 #number of jobs to run in parallel
 JOBCOUNT=100
 #minimum number of CCS passes
-MINPASSES=5
+MINPASSES=1
+#minimum Read Quality
+MINRQ="0.998"
 #FASTA file with barcode indices
 INDICES=""
 #Parse Arguments
@@ -58,6 +62,15 @@ while (( "$#" )); do
     -p|--passes)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         MINPASSES=$2
+        shift 2
+      else
+        echo "ERROR: Argument for $1 is missing" >&2
+        usage 1
+      fi
+      ;;
+    -r|--minRQ)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        MINRQ=$2
         shift 2
       else
         echo "ERROR: Argument for $1 is missing" >&2
@@ -113,7 +126,7 @@ scheduleJob() {
 
   RETVAL=$(submitjob.sh -n ccs$JOBNUM -t $TIME -c $THREADS -m $MEM \
   ccs --min-passes $MINPASSES --chunk ${JOBNUM}/${JOBCOUNT} \
-  --num-threads $THREADS $INFILE $OUTFILE)
+  --min-rq $MINRQ --num-threads $THREADS $INFILE $OUTFILE)
 
   JOBID=${RETVAL##* }
   echo $JOBID
