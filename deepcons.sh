@@ -34,7 +34,9 @@ OUTNAME=${BAMNAME%.bam}
 #gzip files can be directly concatenated
 cat "${OUTDIR}/shards/"*.deep.fastq.gz>"${OUTDIR}/${OUTNAME}".deep.fastq.gz
 #bam files use samtools cat
-samtools cat "${OUTDIR}/shards/"*.ccs.bam -o "${OUTDIR}/${OUTNAME}".ccs.bam
+samtools cat "${OUTDIR}/shards/"*.ccs.bam -o "${OUTDIR}/${OUTNAME}.ccs.bam"
+pbindex "${OUTDIR}/${OUTNAME}.ccs.bam"
+bam2fastq -o "${OUTDIR}/${OUTNAME}.ccs" -c 8 "${OUTDIR}/${OUTNAME}.ccs.bam" 
 #collate reports and logs
 tar czf "${OUTDIR}/${OUTNAME}_ccs_reports.tgz" "${OUTDIR}/shards/"*ccs_report.txt
 tar cf "${OUTDIR}/${OUTNAME}_zmw_metrics.tar" "${OUTDIR}/shards/"*zmw_metrics.json.gz
