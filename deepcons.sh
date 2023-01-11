@@ -108,7 +108,8 @@ for (( ISHARD = 1; ISHARD <= $NUMSHARDS; ISHARD++ )); do
   SHARD_ID=$(printf "%05g" "${ISHARD}")-of-$(printf "%05g" "${NUMSHARDS}")
   # peak RAM usage: 4.3GB + ncores * 430MB . At 12 cores => ~9.5GB
   RETVAL=$(submitjob.sh -n "deepconsensus$ISHARD" -t "2-00:00:00" \
-    -c 12 -m 20GB -l "${OUTDIR}/shards/${SHARD_ID}.log" -e "${OUTDIR}/shards/${SHARD_ID}.log" -- \
+    -b "$BLACKLIST" -c 12 -m 20GB \
+    -l "${OUTDIR}/shards/${SHARD_ID}.log" -e "${OUTDIR}/shards/${SHARD_ID}.log" -- \
     deepcons_shard.sh "$ISHARD" "$NUMSHARDS" "$SUBREADS_BAM" \
     "${OUTDIR}/shards/" "$MODEL" "$MINRQ")
   JOBID=${RETVAL##* }
