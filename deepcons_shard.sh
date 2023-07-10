@@ -11,6 +11,8 @@ MINRQ=${6:-0.998}
 
 SHARD_ID=$(printf "%05g" "${ISHARD}")-of-$(printf "%05g" "${NUMSHARDS}")
 
+echo "Shard $ISHARD running on host $HOSTNAME"
+
 echo "Running CCS"
 
 ccs --min-rq=$MINRQ --num-threads "$(nproc)" \

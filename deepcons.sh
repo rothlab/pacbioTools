@@ -5,7 +5,7 @@ NUMSHARDS=30
 OUTDIR=./
 MODEL=/home/rothlab/common/deepconsensus/model/checkpoint
 MINRQ=0.998
-BLACKLIST="galen1,galen2,galen3,galen4,galen5,galen6,galen7,galen8,galen9,galen10,galen11,galen13,galen14,galen15,galen16,galen17,galen20,galen22,galen23,galen24,galen25,galen26,galen27,galen28,galen30,galen31,galen32,galen34,galen35,galen36,galen37,galen38,galen40,galen41,galen42,galen43,galen44,galen45,galen46,galen68"
+BLACKLIST="galen1,galen2,galen3,galen4,galen5,galen6,galen7,galen8,galen9,galen10,galen11,galen13,galen14,galen15,galen16,galen17,galen20,galen22,galen23,galen24,galen25,galen26,galen27,galen28,galen29,galen30,galen31,galen32,galen34,galen35,galen36,galen37,galen38,galen40,galen41,galen42,galen43,galen44,galen45,galen46,galen68"
 
 #helper function to print usage information
 usage () {
@@ -143,6 +143,7 @@ fi
 echo "Consolidating results..."
 BAMNAME=$(basename $SUBREADS_BAM)
 OUTNAME=${BAMNAME%.bam}
+OUTNAME=${OUTNAME%.subreads}
 #gzip files can be directly concatenated
 cat "${OUTDIR}/shards/"*.deep.fastq.gz>"${OUTDIR}/${OUTNAME}".deep.fastq.gz
 #bam files use samtools cat
